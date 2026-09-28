@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Micro-Intervention Control Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E8ECEA; --panel:#F6F8F7; --ink:#18262F; --muted:#56656C; --line:#C3CCCA; --line-soft:#D8DFDD;
+  --yellow:#F2C300; --yellow-ink:#2A2300;
+  --prot:#1E8A59; --harm:#C3342B; --ineff:#B07418; --inc:#6A4E9E;
+  --zone:#FFFFFF; --cloud:#C3342B;
+  --sans:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141C21; --panel:#1C262C; --ink:#E4EBEE; --muted:#9AA9AF; --line:#34434B; --line-soft:#2A363D;
+    --zone:#223038; --prot:#3DB37C; --harm:#EE5A4F; --ineff:#E0A240; --inc:#9C82D6;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141C21; --panel:#1C262C; --ink:#E4EBEE; --muted:#9AA9AF; --line:#34434B; --line-soft:#2A363D;
+  --zone:#223038; --prot:#3DB37C; --harm:#EE5A4F; --ineff:#E0A240; --inc:#9C82D6;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;
+  padding:22px clamp(16px,3vw,36px) 18px;border-bottom:1px solid var(--line)}
+h1{font:700 clamp(26px,3.4vw,38px)/1 var(--cond);letter-spacing:.2px;margin:0}
+.sub{color:var(--muted);margin-top:6px;max-width:62ch}
+.engine{font:500 14px/1.3 var(--cond);color:var(--muted);text-align:right}
+.engine b{color:var(--ink);font-weight:600}
+
+main{display:grid;grid-template-columns:minmax(290px,340px) 1fr;min-height:calc(100vh - 100px)}
+aside{border-right:1px solid var(--line);padding:18px clamp(14px,2vw,22px) 40px;background:var(--panel)}
+.stage{padding:20px clamp(14px,2.6vw,34px) 48px;min-width:0}
+
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.presets span{width:100%;font:600 15px var(--cond);margin-bottom:2px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;font-size:13.5px;cursor:pointer}
+.chip:hover{border-color:var(--ink)}
+
+fieldset{border:0;border-top:1px solid var(--line);margin:0;padding:12px 0 6px}
+legend{font:600 17px var(--cond);padding:0 0 6px}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;margin:8px 0}
+.row label{font-size:14px;color:var(--muted)}
+.row output{font:600 15px var(--cond);min-width:52px;text-align:right}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;background:transparent;border:0;padding:5px 0;cursor:pointer;font:600 15px var(--cond);min-width:34px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.seg button:disabled{opacity:.3;cursor:not-allowed}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.tog{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:4px 0}
+.tog input{width:17px;height:17px;accent-color:var(--ink)}
+select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--zone)}
+
+/* facility plan */
+.plan-wrap{position:relative}
+.plan-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+h2{font:600 22px/1.1 var(--cond);margin:0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.plan-scroll{overflow-x:auto}
+svg.plan{width:100%;min-width:620px;height:auto;display:block}
+
+/* sequence */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:22px 0 18px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.step{padding:10px 12px;border-right:1px solid var(--line);font-size:13.5px;color:var(--muted);position:relative}
+.step:last-child{border-right:0}
+.step b{display:block;font:600 16px var(--cond);color:var(--ink)}
+.step[data-state=done]{background:color-mix(in srgb,var(--prot) 12%,transparent)}
+.step[data-state=stop]{background:color-mix(in srgb,var(--harm) 12%,transparent)}
+.step[data-state=active]{box-shadow:inset 0 -3px 0 var(--yellow)}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h3{font:600 18px var(--cond);margin:0 0 10px}
+
+.gate{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:7px;margin-bottom:12px;font-size:14px;border:1px solid var(--line)}
+.gate.block{border-color:var(--harm);background:color-mix(in srgb,var(--harm) 10%,transparent)}
+.gate.pass{border-color:var(--line)}
+.gate strong{display:block;font:600 15.5px var(--cond)}
+
+.prob{display:grid;grid-template-columns:112px 1fr 50px;align-items:center;gap:8px;margin:7px 0;font-size:14px}
+.bar{height:12px;background:var(--line-soft);border-radius:3px;position:relative;overflow:hidden}
+.bar>div{height:100%;border-radius:3px;transition:width .25s}
+.tau{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.prob .v{font:600 15px var(--cond);text-align:right}
+.note{font-size:13px;color:var(--muted);margin-top:4px}
+
+.verdict{margin-top:14px;padding:12px 14px;border-radius:8px;color:#fff}
+.verdict .k{font:700 26px/1 var(--cond)}
+.verdict .d{margin-top:4px;font-size:14px;opacity:.95}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.run{border:0;border-radius:7px;padding:11px 18px;font:600 17px var(--cond);cursor:pointer;
+  background:var(--yellow);color:var(--yellow-ink);
+  background-image:repeating-linear-gradient(-45deg,transparent 0 10px,rgba(0,0,0,.07) 10px 20px)}
+.run:disabled{opacity:.4;cursor:not-allowed}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:14px;padding:4px}
+
+.chart{width:100%;height:auto;display:block}
+.result{margin-top:10px;font-size:14.5px}
+.result .tag{display:inline-block;color:#fff;font:600 14px var(--cond);padding:2px 9px;border-radius:4px;margin-right:6px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.fact{border-top:2px solid var(--line);padding-top:6px}
+.fact .n{font:700 22px/1 var(--cond)}
+.fact .l{font-size:12.5px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14.5px;padding:26px 6px;text-align:center}
+
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:18px;margin-top:18px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font:600 14px var(--cond);text-align:left;color:var(--muted);border-bottom:1px solid var(--line);padding:5px 6px}
+td{border-bottom:1px solid var(--line-soft);padding:6px}
+.tscroll{overflow-x:auto;max-height:260px;overflow-y:auto}
+.trust-row{display:grid;grid-template-columns:62px 1fr 42px;gap:8px;align-items:center;margin:7px 0;font-size:14px}
+.trust-row .bar>div{background:var(--ink)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+footer{padding:14px clamp(16px,3vw,36px) 28px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+
+@media (max-width: 980px){
+  main{grid-template-columns:1fr}
+  aside{border-right:0;border-bottom:1px solid var(--line)}
+  .grid2,.lower{grid-template-columns:1fr}
+}
+@media (max-width: 560px){
+  .steps{grid-template-columns:1fr 1fr}
+  .step:nth-child(2){border-right:0}
+  .step:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .facts{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Micro-Intervention Control Console</h1>
+    <div class="sub">Screen an emergency ventilation action, test it with a small reversible pulse, and escalate only if the measured response confirms it protects the occupied zone.</div>
+  </div>
+  <div class="engine">Decision model <b>Gradient Boosting</b><br>Protective gate <b id="tauLbl"></b> &nbsp; Trained on <b>4,000</b> simulated cycles</div>
+</header>
+
+<main>
+<aside>
+  <div class="presets"><span>Load a test-set scenario</span>
+    <button class="chip" data-p="0">Protective case</button>
+    <button class="chip" data-p="1">Harmful case</button>
+    <button class="chip" data-p="2">Ineffective case</button>
+    <button class="chip" data-p="3">Sensor fault case</button>
+  </div>
+
+  <fieldset><legend>Facility layout</legend>
+    <div class="row"><label>Hazard source zone</label></div>
+    <div class="seg" id="segSrc"></div>
+    <div class="row"><label>Protected zone (workers, exit or refuge)</label></div>
+    <div class="seg" id="segPz"></div>
+    <div class="toggles">
+      <label class="tog"><input type="checkbox" id="occupancy">Zone occupied</label>
+      <label class="tog"><input type="checkbox" id="evacuation_route_exposure">On evacuation route</label>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>Hazard state</legend>
+    <div class="row"><label for="initial_hazard_concentration">Source concentration</label><output></output>
+      <input type="range" id="initial_hazard_concentration" min="5" max="60" step="0.5"></div>
+    <div class="row"><label for="spatial_gradient">Spatial gradient toward zone</label><output></output>
+      <input type="range" id="spatial_gradient" min="-3" max="3" step="0.05"></div>
+    <div class="row"><label for="temporal_gradient">Rate of change</label><output></output>
+      <input type="range" id="temporal_gradient" min="-3" max="3" step="0.05"></div>
+    <div class="row"><label for="oxygen_pct">Oxygen (%)</label><output></output>
+      <input type="range" id="oxygen_pct" min="17" max="21" step="0.05"></div>
+  </fieldset>
+
+  <fieldset><legend>Airflow and paths</legend>
+    <div class="toggles">
+      <label class="tog"><input type="checkbox" id="airflow_direction_to_protected">Airflow toward zone</label>
+      <label class="tog"><input type="checkbox" id="door_open">Door open</label>
+      <label class="tog"><input type="checkbox" id="blocked_path">Path blocked</label>
+    </div>
+    <div class="row"><label for="airflow_speed_mps">Airflow speed (m/s)</label><output></output>
+      <input type="range" id="airflow_speed_mps" min="0.2" max="3" step="0.05"></div>
+    <div class="row"><label for="pressure_diff_pa">Pressure difference (Pa)</label><output></output>
+      <input type="range" id="pressure_diff_pa" min="-45" max="45" step="0.5"></div>
+  </fieldset>
+
+  <fieldset><legend>Proposed micro-intervention</legend>
+    <div class="row"><label for="actuator_type">Actuator</label></div>
+    <select id="actuator_type"><option value="fan">Fan</option><option value="damper">Damper</option><option value="valve">Valve</option><option value="pump">Pump</option><option value="door">Door</option></select>
+    <div class="row"><label for="intervention_magnitude_pct">Command magnitude (%)</label><output></output>
+      <input type="range" id="intervention_magnitude_pct" min="10" max="60" step="0.5"></div>
+    <div class="row"><label for="intervention_duration_s">Pulse duration (s)</label><output></output>
+      <input type="range" id="intervention_duration_s" min="2" max="20" step="0.5"></div>
+    <div class="row"><label for="actuator_trust">Actuator trust</label><output></output>
+      <input type="range" id="actuator_trust" min="0" max="1" step="0.01"></div>
+  </fieldset>
+
+  <fieldset><legend>Equipment health</legend>
+    <div class="toggles">
+      <label class="tog"><input type="checkbox" id="sensor_fault">Sensor fault</label>
+      <label class="tog"><input type="checkbox" id="actuator_fault">Actuator fault</label>
+    </div>
+    <div class="row"><label for="communication_delay_ms">Communication delay (ms)</label><output></output>
+      <input type="range" id="communication_delay_ms" min="20" max="900" step="5"></div>
+  </fieldset>
+</aside>
+
+<section class="stage">
+  <div class="plan-wrap">
+    <div class="plan-head"><h2>Facility plan</h2>
+      <div class="legend"><span><i style="background:var(--yellow)"></i>Hazard source</span><span><i style="border:2px solid var(--ink);background:transparent"></i>Protected zone</span><span><i style="background:var(--cloud);opacity:.5"></i>Measured concentration</span></div>
+    </div>
+    <div class="plan-scroll"><svg class="plan" id="plan" viewBox="0 0 900 250" role="img" aria-label="Four-zone facility plan"></svg></div>
+  </div>
+
+  <div class="steps" id="steps">
+    <div class="step" data-k="0"><b>Screen</b>Safety filter and model</div>
+    <div class="step" data-k="1"><b>Test</b>Bounded reversible pulse</div>
+    <div class="step" data-k="2"><b>Validate</b>Measured vs predicted</div>
+    <div class="step" data-k="3"><b>Act</b>Escalate or roll back</div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" aria-live="polite">
+      <h3>Screening decision</h3>
+      <div id="gate"></div>
+      <div id="probs"></div>
+      <div class="note">The vertical line marks the confidence the model needs before a candidate is called Protective.</div>
+      <div id="verdict"></div>
+      <div class="actions">
+        <button class="run" id="runBtn">Run micro-intervention test</button>
+        <button class="link" id="forceBtn" hidden>Simulate anyway (demo only)</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Response validation</h3>
+      <div id="testOut"><div class="empty">Run a test to see the measured protected-zone response against the prediction.</div></div>
+    </div>
+  </div>
+
+  <div class="lower">
+    <div class="card"><h3>Actuator trust memory</h3><div id="trust"></div>
+      <div class="note">Updated after every test: validated protection raises trust; harmful or inconsistent responses cut it.</div></div>
+    <div class="card"><h3>Decision log</h3>
+      <div class="tscroll"><table><thead><tr><th>#</th><th>Actuator</th><th>Screened as</th><th>Measured</th><th>Action taken</th><th>Trust</th></tr></thead><tbody id="log"><tr><td colspan="6" class="empty" style="padding:14px">No tests run yet.</td></tr></tbody></table></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Prototype for the CBS1901 TARP project. The model and the physical response come from a controlled four-zone simulation; results show the decision logic, not a certified safety system.</footer>
+
+<script src="model_export.js"></script>
+<script>
+// MODEL is defined by model_export.js (written by export_model.py)
+const COL = {Protective:"var(--prot)",Harmful:"var(--harm)",Ineffective:"var(--ineff)",Inconsistent:"var(--inc)"};
+const ORDER = ["Protective","Harmful","Ineffective","Inconsistent"];
+const TREAT = {
+  Protective:"Admit to a bounded micro-intervention test. Full action only if the measured response confirms protection.",
+  Harmful:"Reject before execution. Generate an alternative candidate.",
+  Ineffective:"Hold as an alternative or diagnostic action. No escalation.",
+  Inconsistent:"Hold for extra sensing, fault attribution or operator approval."};
+const TRUST_F = {Protective:1.04,Ineffective:0.95,Harmful:0.85,Inconsistent:0.59};
+const GAIN = {fan:1,damper:.85,valve:.7,pump:.65,door:.9};
+
+const PRESETS = [
+ {"source_zone":2,"protected_zone":4,"initial_hazard_concentration":46.4,"spatial_gradient":-0.5,"temporal_gradient":-0.3,"airflow_speed_mps":2.76,"airflow_direction_to_protected":0,"pressure_diff_pa":-0.8,"oxygen_pct":19.46,"door_open":1,"blocked_path":0,"sensor_fault":0,"actuator_fault":0,"communication_delay_ms":45,"actuator_type":"valve","intervention_magnitude_pct":52.5,"intervention_duration_s":19.5,"actuator_trust":0.9,"occupancy":1,"evacuation_route_exposure":1},
+ {"source_zone":4,"protected_zone":1,"initial_hazard_concentration":5.5,"spatial_gradient":0.9,"temporal_gradient":-0.25,"airflow_speed_mps":2.56,"airflow_direction_to_protected":1,"pressure_diff_pa":3.5,"oxygen_pct":18.3,"door_open":0,"blocked_path":0,"sensor_fault":0,"actuator_fault":0,"communication_delay_ms":50,"actuator_type":"valve","intervention_magnitude_pct":57.5,"intervention_duration_s":5.5,"actuator_trust":0.75,"occupancy":1,"evacuation_route_exposure":1},
+ {"source_zone":2,"protected_zone":4,"initial_hazard_concentration":12,"spatial_gradient":0.65,"temporal_gradient":0.35,"airflow_speed_mps":1.64,"airflow_direction_to_protected":0,"pressure_diff_pa":11.5,"oxygen_pct":20.84,"door_open":0,"blocked_path":0,"sensor_fault":0,"actuator_fault":0,"communication_delay_ms":30,"actuator_type":"door","intervention_magnitude_pct":15.5,"intervention_duration_s":14.5,"actuator_trust":0.7,"occupancy":0,"evacuation_route_exposure":1},
+ {"source_zone":3,"protected_zone":1,"initial_hazard_concentration":56,"spatial_gradient":0.95,"temporal_gradient":1.6,"airflow_speed_mps":2.41,"airflow_direction_to_protected":0,"pressure_diff_pa":-20.5,"oxygen_pct":18.26,"door_open":1,"blocked_path":0,"sensor_fault":1,"actuator_fault":0,"communication_delay_ms":485,"actuator_type":"fan","intervention_magnitude_pct":30.5,"intervention_duration_s":14.5,"actuator_trust":0.89,"occupancy":1,"evacuation_route_exposure":1}
+];
+
+// ---------- state ----------
+const S = Object.assign({}, PRESETS[0]);
+const trustMem = {fan:0.82,damper:0.9,valve:0.9,pump:0.76,door:0.7};
+trustMem[S.actuator_type] = S.actuator_trust;
+let runNo = 0, lastTest = null;
+const $ = id => document.getElementById(id);
+$("tauLbl").textContent = "P ≥ " + MODEL.tau.toFixed(2);
+
+// ---------- model inference (exported sklearn GradientBoosting) ----------
+function vector(s){
+  const v = MODEL.num.map(k => k==="hop_distance" ? Math.abs(s.source_zone-s.protected_zone) : +s[k]);
+  MODEL.cats.forEach(c => v.push(s.actuator_type===c ? 1 : 0));
+  return v;
+}
+function predictProba(s){
+  const x = vector(s), r = MODEL.init.slice();
+  for (const stage of MODEL.trees){
+    for (let k=0;k<stage.length;k++){
+      const [f,th,l,rr,val] = stage[k]; let n=0;
+      while (l[n] !== -1) n = x[f[n]] <= th[n] ? l[n] : rr[n];
+      r[k] += MODEL.lr * val[n];
+    }
+  }
+  const m = Math.max(...r), e = r.map(z=>Math.exp(z-m)), t = e.reduce((a,b)=>a+b,0);
+  const out = {}; MODEL.classes.forEach((c,i)=>out[c]=e[i]/t); return out;
+}
+function gated(p){
+  if (p.Protective >= MODEL.tau) return "Protective";
+  let best=null; for (const c of MODEL.classes) if (c!=="Protective" && (best===null || p[c]>p[best])) best=c;
+  return best;
+}
+function hardConstraint(s){
+  if (s.occupancy && s.airflow_direction_to_protected)
+    return "Airflow is moving toward an occupied protected zone. Any push would carry the hazard onto people, so the action is rejected whatever the model predicts.";
+  return null;
+}
+
+// ---------- controls ----------
+const RANGES = ["initial_hazard_concentration","spatial_gradient","temporal_gradient","oxygen_pct","airflow_speed_mps","pressure_diff_pa","intervention_magnitude_pct","intervention_duration_s","actuator_trust","communication_delay_ms"];
+const CHECKS = ["occupancy","evacuation_route_exposure","airflow_direction_to_protected","door_open","blocked_path","sensor_fault","actuator_fault"];
+const FMT = {initial_hazard_concentration:v=>(+v).toFixed(1),spatial_gradient:v=>(+v).toFixed(2),temporal_gradient:v=>(+v).toFixed(2),
+  oxygen_pct:v=>(+v).toFixed(2),airflow_speed_mps:v=>(+v).toFixed(2),pressure_diff_pa:v=>(+v).toFixed(1),
+  intervention_magnitude_pct:v=>(+v).toFixed(1),intervention_duration_s:v=>(+v).toFixed(1),actuator_trust:v=>(+v).toFixed(2),communication_delay_ms:v=>Math.round(v)};
+
+function buildSeg(id,key){
+  const el=$(id); el.innerHTML="";
+  for (let z=1;z<=4;z++){ const b=document.createElement("button"); b.type="button"; b.textContent="Zone "+z; b.dataset.z=z;
+    b.onclick=()=>{ S[key]=z; if (S.source_zone===S.protected_zone){ const other = key==="source_zone"?"protected_zone":"source_zone"; S[other]= z===4?3:z+1; } syncInputs(); update(); };
+    el.appendChild(b); }
+}
+buildSeg("segSrc","source_zone"); buildSeg("segPz","protected_zone");
+
+RANGES.forEach(k=>{ $(k).addEventListener("input",e=>{ S[k]=+e.target.value; if(k==="actuator_trust") trustMem[S.actuator_type]=S[k]; syncInputs(); update(); }); });
+CHECKS.forEach(k=>{ $(k).addEventListener("change",e=>{ S[k]=e.target.checked?1:0; update(); }); });
+$("actuator_type").addEventListener("change",e=>{ S.actuator_type=e.target.value; S.actuator_trust=trustMem[S.actuator_type]; syncInputs(); update(); });
+document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ Object.assign(S,PRESETS[+b.dataset.p]); trustMem[S.actuator_type]=S.actuator_trust; lastTest=null; renderTest(null); syncInputs(); update(); });
+
+function syncInputs(){
+  RANGES.forEach(k=>{ $(k).value=S[k]; $(k).parentElement.querySelector("output").textContent=FMT[k](S[k]); });
+  CHECKS.forEach(k=>$(k).checked=!!S[k]);
+  $("actuator_type").value=S.actuator_type;
+  [["segSrc","source_zone","protected_zone"],["segPz","protected_zone","source_zone"]].forEach(([id,key,other])=>{
+    $(id).querySelectorAll("button").forEach(b=>{ b.setAttribute("aria-pressed", +b.dataset.z===S[key]); b.disabled = +b.dataset.z===S[other]; });
+  });
+}
+
+// ---------- facility plan ----------
+function drawPlan(measured){
+  const W=900, zw=200, gap=20, x0=20, y=40, h=150;
+  const src=S.source_zone, pz=S.protected_zone;
+  let g="";
+  for (let z=1;z<=4;z++){
+    const x=x0+(z-1)*(zw+gap);
+    let conc = z===src ? S.initial_hazard_concentration : Math.max(0, S.initial_hazard_concentration*(0.45/Math.abs(z-src)) + (S.airflow_direction_to_protected && ((pz-src)*(z-src)>0) ? 6 : 0));
+    if (z===pz && measured!=null) conc = Math.max(0, conc + measured);
+    const op = Math.min(0.75, conc/80);
+    g+=`<rect x="${x}" y="${y}" width="${zw}" height="${h}" rx="6" fill="var(--zone)" stroke="var(--line)" stroke-width="1.5"/>`;
+    g+=`<rect x="${x+1}" y="${y+1}" width="${zw-2}" height="${h-2}" rx="5" fill="var(--cloud)" opacity="${op.toFixed(3)}" style="transition:opacity .35s"/>`;
+    if (z===pz) g+=`<rect x="${x-4}" y="${y-4}" width="${zw+8}" height="${h+8}" rx="9" fill="none" stroke="var(--ink)" stroke-width="3"/>`;
+    g+=`<text x="${x+12}" y="${y+26}" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="20" fill="var(--ink)">Zone ${z}</text>`;
+    g+=`<text x="${x+12}" y="${y+h-14}" font-family="Barlow, sans-serif" font-size="13" fill="var(--muted)">≈ ${conc.toFixed(1)} units</text>`;
+    if (z===src){
+      g+=`<g transform="translate(${x+zw-44},${y+14})"><path d="M16 0 L32 28 L0 28 Z" fill="var(--yellow)" stroke="var(--ink)" stroke-width="1.5"/><text x="16" y="24" text-anchor="middle" font-weight="700" font-size="16" fill="var(--yellow-ink)">!</text></g>`;
+      g+=`<text x="${x+12}" y="${y+48}" font-family="Barlow, sans-serif" font-size="13.5" fill="var(--ink)">Hazard source</text>`;
+      g+=`<g transform="translate(${x+zw/2-22},${y+62})">${actuatorIcon(S.actuator_type)}</g>`;
+    }
+    if (z===pz){
+      g+=`<text x="${x+12}" y="${y+48}" font-family="Barlow, sans-serif" font-size="13.5" fill="var(--ink)">Protected zone</text>`;
+      if (S.occupancy) for (let i=0;i<3;i++) g+=`<g transform="translate(${x+60+i*30},${y+72})"><circle cx="8" cy="6" r="6" fill="var(--ink)"/><path d="M0 34 L2 16 Q8 12 14 16 L16 34 Z" fill="var(--ink)"/></g>`;
+      if (S.evacuation_route_exposure) g+=`<text x="${x+zw-12}" y="${y+h-14}" text-anchor="end" font-family="Barlow, sans-serif" font-size="13" fill="var(--prot)">Exit route</text>`;
+    }
+    if (z<4){
+      const dx=x+zw, open=S.door_open;
+      g+=`<rect x="${dx+2}" y="${y+h/2-22}" width="${gap-4}" height="44" fill="${open?"var(--paper)":"var(--muted)"}" stroke="var(--line)"/>`;
+    }
+  }
+  // airflow arrow along the corridor between source and protected zone
+  const dir = S.airflow_direction_to_protected ? Math.sign(pz-src) : -Math.sign(pz-src);
+  const ay=220, cx=x0+(src-1)*(zw+gap)+zw/2;
+  const len = 70 + S.airflow_speed_mps*40;
+  const x1=cx, x2=cx+dir*len;
+  const acol = S.airflow_direction_to_protected ? "var(--harm)" : "var(--prot)";
+  g+=`<line x1="${x1}" y1="${ay}" x2="${x2}" y2="${ay}" stroke="${acol}" stroke-width="4" stroke-linecap="round"/>`;
+  g+=`<path d="M${x2} ${ay} l${-dir*14} -8 v16 z" fill="${acol}"/>`;
+  g+=`<text x="${(x1+x2)/2}" y="${ay-8}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="13" fill="var(--ink)">Airflow ${S.airflow_speed_mps.toFixed(1)} m/s${S.airflow_direction_to_protected?" toward protected zone":" away from protected zone"}</text>`;
+  if (S.blocked_path) g+=`<text x="${W-20}" y="26" text-anchor="end" font-family="Barlow, sans-serif" font-size="13" fill="var(--harm)">Path blocked</text>`;
+  $("plan").innerHTML=g;
+}
+function actuatorIcon(t){
+  const s='stroke="var(--ink)" stroke-width="2" fill="none"';
+  const label=`<text x="22" y="62" text-anchor="middle" font-family="Barlow, sans-serif" font-size="12.5" fill="var(--muted)">${t}</text>`;
+  if (t==="fan") return `<circle cx="22" cy="22" r="20" ${s}/><path d="M22 22 Q30 6 36 16 Z M22 22 Q8 30 12 38 Z M22 22 Q6 12 10 8 Z" fill="var(--ink)"/>`+label;
+  if (t==="damper") return `<rect x="2" y="2" width="40" height="40" rx="3" ${s}/><path d="M6 12 L38 16 M6 22 L38 26 M6 32 L38 36" ${s}/>`+label;
+  if (t==="valve") return `<path d="M2 10 L22 22 L2 34 Z M42 10 L22 22 L42 34 Z" ${s}/><path d="M22 22 V4 M14 4 H30" ${s}/>`+label;
+  if (t==="pump") return `<circle cx="22" cy="22" r="18" ${s}/><path d="M12 22 H32 M26 16 L32 22 L26 28" ${s}/>`+label;
+  return `<rect x="8" y="2" width="28" height="40" rx="2" ${s}/><circle cx="30" cy="23" r="2.5" fill="var(--ink)"/>`+label;
+}
+
+// ---------- screening panel ----------
+let current = null;
+function update(){
+  const p = predictProba(S), hc = hardConstraint(S), g = gated(p);
+  const decision = hc ? "Harmful" : g;
+  current = {p, hc, g, decision};
+  $("gate").innerHTML = hc
+    ? `<div class="gate block"><div><strong>Rejected by the protected-zone rule</strong>${hc}</div></div>`
+    : `<div class="gate pass"><div><strong>Protected-zone rule passed</strong>No airflow is carrying the hazard toward an occupied zone. The model decides next.</div></div>`;
+  $("probs").innerHTML = ORDER.map(c=>{
+    const v=p[c]*100;
+    return `<div class="prob"><span><span class="dot" style="background:${COL[c]}"></span>${c}</span><div class="bar"><div style="width:${v.toFixed(1)}%;background:${COL[c]}"></div>${c==="Protective"?`<span class="tau" style="left:${(MODEL.tau*100).toFixed(1)}%"></span>`:""}</div><span class="v">${v.toFixed(1)}%</span></div>`;
+  }).join("");
+  const label = hc ? "Rejected" : g;
+  $("verdict").innerHTML = `<div class="verdict" style="background:${COL[decision]}"><div class="k">${label}</div><div class="d">${hc?"The candidate never reaches the physical test.":TREAT[g]}</div></div>`;
+  const admitted = !hc && g==="Protective";
+  $("runBtn").disabled = !admitted;
+  $("runBtn").title = admitted ? "" : "Only candidates screened as Protective are tested on live equipment";
+  $("forceBtn").hidden = admitted;
+  setSteps(lastTest && lastTest.sig===sig() ? lastTest : null);
+  drawPlan(lastTest && lastTest.sig===sig() ? lastTest.shownDelta : null);
+  renderTrust();
+}
+function sig(){ return JSON.stringify(S); }
+function setSteps(t){
+  const st=[...document.querySelectorAll(".step")];
+  st.forEach(s=>s.removeAttribute("data-state"));
+  const admitted = current && !current.hc && current.g==="Protective";
+  if (!t){ st[0].dataset.state = admitted ? "done":"stop"; if (admitted) st[1].dataset.state="active"; return; }
+  st[0].dataset.state = t.forced ? "stop" : "done";
+  st[1].dataset.state = "done";
+  st[2].dataset.state = t.outcome==="Protective" ? "done" : "stop";
+  st[3].dataset.state = t.outcome==="Protective" ? "done" : "stop";
+}
+
+// ---------- physical response simulation (same equations as simulate.py) ----------
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function normal(r){ let u=0,v=0; while(!u)u=r(); while(!v)v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function label(dC, toward, sf, ach){
+  if (sf===1 || ach<45) return "Inconsistent";
+  if (dC>6 || (toward===1 && dC>1)) return "Harmful";
+  if (dC<-5) return "Protective";
+  return "Ineffective";
+}
+function runTest(forced){
+  runNo++;
+  const r = rng(Date.now() ^ (runNo*7919));
+  const hop = Math.abs(S.source_zone-S.protected_zone);
+  const ach = Math.min(100, Math.max(0, 100 - S.actuator_fault*(35+45*r()) - (1-S.actuator_trust)*25 - S.communication_delay_ms/45 + 7*normal(r)));
+  const effortNom = (S.intervention_magnitude_pct/100)*Math.sqrt(S.intervention_duration_s/10)*GAIN[S.actuator_type]*(S.blocked_path?0.5:1);
+  const effort = effortNom*(ach/100);
+  const flipP = 0.04 + 0.10*S.door_open + 0.04*(S.pressure_diff_pa>15);
+  let dir = S.airflow_direction_to_protected ? 1 : -1;
+  const flipped = r() < flipP; if (flipped) dir = -dir;
+  const scale = 30*(1/hop)*(0.6+S.initial_hazard_concentration/60);
+  const drift = 1.4*S.spatial_gradient + 1.0*S.temporal_gradient;
+  const dTrue = dir*effort*scale + drift + 3*normal(r);
+  const bias = S.sensor_fault ? 8*normal(r) : 0;
+  const dMeas = dTrue + bias;
+  const nomDir = S.airflow_direction_to_protected ? 1 : -1;
+  const dPred = nomDir*effortNom*scale + drift;
+  const outcome = label(dMeas, S.airflow_direction_to_protected, S.sensor_fault, ach);
+
+  // time traces: 12 samples across the pulse, first-order response
+  const N=12, T=S.intervention_duration_s, pred=[], meas=[];
+  for (let i=0;i<=N;i++){
+    const f = 1-Math.exp(-3*i/N), norm = 1-Math.exp(-3);
+    pred.push(dPred*f/norm);
+    meas.push(dMeas*f/norm + (i? 0.35*normal(r):0));
+  }
+  // harmful-gradient termination: stop on a rising trend toward the zone before the 10-unit alarm
+  let stopAt=null;
+  if (outcome==="Harmful" || outcome==="Inconsistent"){
+    for (let i=2;i<=N;i++){
+      const slope = meas[i]-meas[i-2];
+      if ((meas[i]>1 && slope>0.8) || meas[i]>6){ stopAt=i; break; }
+    }
+    if (stopAt===null) stopAt=N;
+  }
+  const rollbackOK = ach>=45 && S.communication_delay_ms<=300;
+  let action;
+  if (outcome==="Protective") action = "Full action authorised under continuous monitoring";
+  else if (outcome==="Harmful") action = rollbackOK ? "Stopped early and rolled back" : "Rollback unconfirmed: fail-safe isolation, operator alerted";
+  else if (outcome==="Ineffective") action = "Pulse ended; no escalation, try alternative";
+  else action = rollbackOK ? "Rolled back; fault attribution requested" : "Fail-safe isolation; fault attribution requested";
+
+  const before = S.actuator_trust;
+  const after = Math.min(1, Math.max(0, before*TRUST_F[outcome]));
+  trustMem[S.actuator_type] = after;
+
+  const shownDelta = stopAt!==null ? meas[stopAt] : meas[N];
+  lastTest = {pred, meas, stopAt, N, T, outcome, action, ach, dMeas, dPred, rollbackOK, flipped, before, after, forced, screened: current.hc?"Rejected":current.g, shownDelta};
+  renderTest(lastTest);
+  logRow(lastTest);
+  S.actuator_trust = after; syncInputs();
+  lastTest.sig = sig();
+  update();
+}
+
+function renderTest(t){
+  if (!t){ $("testOut").innerHTML='<div class="empty">Run a test to see the measured protected-zone response against the prediction.</div>'; return; }
+  const W=560,H=250,pl=44,pr=14,pt=14,pb=36, iw=W-pl-pr, ih=H-pt-pb;
+  const upto = t.stopAt!==null ? t.stopAt : t.N;
+  const shown = t.meas.slice(0, upto+1);
+  const rollback = [];
+  if (t.stopAt!==null && t.rollbackOK){ const v=t.meas[t.stopAt]; for (let i=1;i<=3;i++) rollback.push(v*Math.exp(-1.2*i)); }
+  const all = t.pred.concat(shown, rollback, [10,-10,0]);
+  const ymax=Math.max(...all)+1.5, ymin=Math.min(...all)-1.5;
+  const X=i=>pl+iw*i/(t.N+3), Y=v=>pt+ih*(ymax-v)/(ymax-ymin);
+  const path=(arr,off=0)=>arr.map((v,i)=>(i?"L":"M")+X(i+off).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Predicted versus measured protected-zone response">`;
+  for (let v=Math.ceil(ymin/5)*5; v<=ymax; v+=5){ s+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line-soft)"/><text x="${pl-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`; }
+  s+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)" stroke-width="1.5"/>`;
+  s+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(10)}" y2="${Y(10)}" stroke="var(--harm)" stroke-dasharray="5 4"/><text x="${W-pr}" y="${Y(10)-5}" text-anchor="end" font-size="11" fill="var(--harm)">10-unit alarm threshold</text>`;
+  s+=`<path d="${path(t.pred)}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4"/>`;
+  s+=`<path d="${path(shown)}" fill="none" stroke="${COL[t.outcome]}" stroke-width="3" stroke-linejoin="round"/>`;
+  if (rollback.length) s+=`<path d="${path([t.meas[t.stopAt]].concat(rollback), t.stopAt)}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="2 4"/>`;
+  if (t.stopAt!==null){ s+=`<line x1="${X(t.stopAt)}" x2="${X(t.stopAt)}" y1="${pt}" y2="${H-pb}" stroke="var(--ink)"/><text x="${X(t.stopAt)+4}" y="${pt+12}" font-size="11.5" fill="var(--ink)">Pulse stopped</text>`; }
+  s+=`<text x="${pl}" y="${H-10}" font-size="11.5" fill="var(--muted)">0 s</text><text x="${X(t.N)}" y="${H-10}" text-anchor="middle" font-size="11.5" fill="var(--muted)">${t.T.toFixed(1)} s</text>`;
+  s+=`<text x="12" y="${pt+ih/2}" font-size="11.5" fill="var(--muted)" transform="rotate(-90 12 ${pt+ih/2})" text-anchor="middle">Change in protected zone</text>`;
+  s+=`</svg>`;
+  s+=`<div class="legend" style="margin-top:4px"><span><i style="background:var(--muted)"></i>Predicted</span><span><i style="background:${COL[t.outcome]}"></i>Measured</span>${rollback.length?'<span><i style="background:var(--ink)"></i>Rollback</span>':""}</div>`;
+  const stopTxt = t.stopAt!==null && t.stopAt<t.N ? ` The trend was caught at ${(t.T*t.stopAt/t.N).toFixed(1)} s, with the zone at ${t.meas[t.stopAt].toFixed(1)} units, ${t.meas[t.stopAt]<10?"before":"after"} the alarm threshold.` : "";
+  const flipTxt = t.flipped ? " The real airflow path differed from the model (for example an unexpected open door), so the hazard moved the other way." : "";
+  s+=`<div class="result"><span class="tag" style="background:${COL[t.outcome]}">${t.outcome}</span>${t.action}.${stopTxt}${flipTxt}${t.forced?" This candidate was not admitted by screening and was simulated for demonstration only.":""}</div>`;
+  s+=`<div class="facts"><div class="fact"><div class="n">${t.dPred>=0?"+":""}${t.dPred.toFixed(1)}</div><div class="l">Predicted change</div></div><div class="fact"><div class="n">${t.dMeas>=0?"+":""}${t.dMeas.toFixed(1)}</div><div class="l">Measured change (full pulse)</div></div><div class="fact"><div class="n">${t.ach.toFixed(0)}%</div><div class="l">Command achieved</div></div></div>`;
+  $("testOut").innerHTML=s;
+}
+
+function logRow(t){
+  const tb=$("log"); if (runNo===1) tb.innerHTML="";
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td>${runNo}</td><td>${S.actuator_type}</td><td>${t.screened}${t.forced?" (demo)":""}</td><td><span class="dot" style="background:${COL[t.outcome]}"></span>${t.outcome}</td><td>${t.action}</td><td>${t.before.toFixed(2)} → ${t.after.toFixed(2)}</td>`;
+  tb.prepend(tr);
+}
+function renderTrust(){
+  $("trust").innerHTML = Object.keys(trustMem).map(k=>`<div class="trust-row"><span style="${k===S.actuator_type?"font-weight:600":""}">${k}</span><div class="bar"><div style="width:${(trustMem[k]*100).toFixed(0)}%${trustMem[k]<0.5?";background:var(--harm)":""}"></div></div><span style="text-align:right;font:600 15px var(--cond)">${trustMem[k].toFixed(2)}</span></div>`).join("");
+}
+
+$("runBtn").onclick=()=>runTest(false);
+$("forceBtn").onclick=()=>runTest(true);
+syncInputs(); update();
+</script>
+</body>
+</html>

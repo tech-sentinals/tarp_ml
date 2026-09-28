@@ -1,0 +1,101 @@
+{
+  "selected_model": "Gradient Boosting",
+  "protective_threshold_tau": 0.84,
+  "model_comparison": [
+    {
+      "model": "Gradient Boosting",
+      "accuracy": 0.771,
+      "weighted_precision": 0.7999,
+      "weighted_recall": 0.771,
+      "weighted_f1": 0.7482,
+      "harmful_recall": 0.9293,
+      "protective_tau": 0.84,
+      "false_safe_rate": 0.0076,
+      "inference_s_1000": 0.0234,
+      "accuracy_ungated": 0.808,
+      "false_safe_rate_ungated": 0.0202
+    },
+    {
+      "model": "Logistic Regression",
+      "accuracy": 0.773,
+      "weighted_precision": 0.8086,
+      "weighted_recall": 0.773,
+      "weighted_f1": 0.7545,
+      "harmful_recall": 0.904,
+      "protective_tau": 0.85,
+      "false_safe_rate": 0.0076,
+      "inference_s_1000": 0.0046,
+      "accuracy_ungated": 0.797,
+      "false_safe_rate_ungated": 0.0379
+    },
+    {
+      "model": "Random Forest",
+      "accuracy": 0.766,
+      "weighted_precision": 0.7984,
+      "weighted_recall": 0.766,
+      "weighted_f1": 0.7418,
+      "harmful_recall": 0.9242,
+      "protective_tau": 0.69,
+      "false_safe_rate": 0.0101,
+      "inference_s_1000": 0.1005,
+      "accuracy_ungated": 0.803,
+      "false_safe_rate_ungated": 0.0177
+    }
+  ],
+  "screening": {
+    "Protective": {
+      "records": 61,
+      "treatment": "Eligible for bounded micro-intervention validation"
+    },
+    "Harmful": {
+      "records": 436,
+      "treatment": "Rejected before autonomous escalation"
+    },
+    "Ineffective": {
+      "records": 327,
+      "treatment": "Retained only as alternative / diagnostic action"
+    },
+    "Inconsistent": {
+      "records": 176,
+      "treatment": "Additional sensing, fault attribution or operator review"
+    }
+  },
+  "admitted_protective_actually_unsafe": 3,
+  "extra_hard_filter_rejections_among_admitted": 0,
+  "harmful_test_cases": 396,
+  "harmful_caught_below_abs_threshold": 285,
+  "harmful_caught_below_abs_threshold_pct": 71.97,
+  "rollback_eligible": 552,
+  "rollback_success": 399,
+  "rollback_success_pct": 72.28,
+  "mean_trust_by_outcome": {
+    "Protective": {
+      "actuator_trust": 0.7207,
+      "trust_after": 0.7493
+    },
+    "Harmful": {
+      "actuator_trust": 0.7121,
+      "trust_after": 0.6053
+    },
+    "Ineffective": {
+      "actuator_trust": 0.7116,
+      "trust_after": 0.6761
+    },
+    "Inconsistent": {
+      "actuator_trust": 0.7192,
+      "trust_after": 0.4243
+    }
+  },
+  "top_features": {
+    "airflow_direction_to_protected": 0.3599,
+    "actuator_fault": 0.1964,
+    "sensor_fault": 0.1871,
+    "intervention_magnitude_pct": 0.05,
+    "spatial_gradient": 0.0339,
+    "hop_distance": 0.0284,
+    "intervention_duration_s": 0.0248,
+    "initial_hazard_concentration": 0.0239,
+    "temporal_gradient": 0.0161,
+    "actuator_trust": 0.0135
+  }
+}

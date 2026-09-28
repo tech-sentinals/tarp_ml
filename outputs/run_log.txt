@@ -1,0 +1,72 @@
+Train 4000 | Test 1000
+Class counts (full):
+ outcome
+Protective       987
+Harmful         1978
+Ineffective     1255
+Inconsistent     780
+Name: count, dtype: int64 
+
+              model  accuracy  weighted_precision  weighted_recall  weighted_f1  harmful_recall  protective_tau  false_safe_rate  inference_s_1000  accuracy_ungated  false_safe_rate_ungated
+  Gradient Boosting    0.7710              0.7999           0.7710       0.7482          0.9293          0.8400           0.0076            0.0205            0.8080                   0.0202
+Logistic Regression    0.7730              0.8086           0.7730       0.7545          0.9040          0.8500           0.0076            0.0033            0.7970                   0.0379
+      Random Forest    0.7660              0.7984           0.7660       0.7418          0.9242          0.6900           0.0101            0.0649            0.8030                   0.0177
+
+Selected model (safety-first): Gradient Boosting  (Protective gate tau = 0.84)
+
+              precision    recall  f1-score   support
+
+  Protective     0.9180    0.2843    0.4341       197
+     Harmful     0.8440    0.9293    0.8846       396
+ Ineffective     0.5872    0.7649    0.6644       251
+Inconsistent     0.8807    0.9936    0.9337       156
+
+    accuracy                         0.7710      1000
+   macro avg     0.8075    0.7430    0.7292      1000
+weighted avg     0.7999    0.7710    0.7482      1000
+
+Screening:
+ predicted
+Protective       61
+Harmful         436
+Ineffective     327
+Inconsistent    176
+Admitted as Protective but actually Harmful/Inconsistent: 3
+Harmful caught below 10.0-unit threshold: 285/396 (71.97%)
+Rollback success: 399/552 (72.28%)
+Mean trust:
+               actuator_trust  trust_after
+outcome                                  
+Protective            0.7207       0.7493
+Harmful               0.7121       0.6053
+Ineffective           0.7116       0.6761
+Inconsistent          0.7192       0.4243
+
+Outcome spread by actuator:
+ outcome        Protective  Harmful  Ineffective  Inconsistent
+actuator_type                                                
+damper                210      399          258           157
+door                  221      396          214           158
+fan                   232      381          239           160
+pump                  151      418          280           144
+valve                 173      384          264           161
+
+Representative scenarios:
+              record_id actuator_type  intervention_magnitude_pct  dC_protected  command_achievement_pct     predicted
+outcome                                                                                                              
+Protective      R00198         valve                       52.37        -6.709                    91.84    Protective
+Harmful         R00450         valve                       57.49         4.052                    92.07       Harmful
+Ineffective     R00168          door                       15.40        -3.878                    92.00   Ineffective
+Inconsistent    R04869           fan                       30.41        14.633                    91.96  Inconsistent
+
+Top features:
+ airflow_direction_to_protected    0.3598
+actuator_fault                    0.1964
+sensor_fault                      0.1871
+intervention_magnitude_pct        0.0499
+spatial_gradient                  0.0340
+hop_distance                      0.0284
+intervention_duration_s           0.0248
+initial_hazard_concentration      0.0240
+temporal_gradient                 0.0161
+actuator_trust                    0.0135
